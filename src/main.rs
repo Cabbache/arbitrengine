@@ -105,8 +105,8 @@ fn update_states(
 		let from_index = asset_to_index(item.from.clone(), currency_index, currencies);
 		let to_index = asset_to_index(item.to.clone(), currency_index, currencies);
 
-		currencies.update_edge(from_index, to_index, item.rate);
-		currencies.update_edge(to_index, from_index, 1f64/item.rate);
+		currencies.update_edge(from_index, to_index, item.rate.log2());
+		currencies.update_edge(to_index, from_index, (1f64/item.rate).log2());
 	}
 }
 
