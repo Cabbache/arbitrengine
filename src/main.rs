@@ -55,8 +55,9 @@ fn parse_input(data: String) -> Result<Vec<Exchange>, String> {
 }
 
 fn path_to_string(path: GraphPath, currencies: &CGraph) -> String {
-	path.iter()
-	.map(|index| currencies[*index].clone())
+	let indexes = path.iter().map(|index| currencies[*index].clone());
+	indexes.clone().zip(indexes.skip(1))
+	.map(|(a, b)| format!("{}/{}", a, b))
 	.collect::<Vec<String>>()
 	.join(",")
 }
