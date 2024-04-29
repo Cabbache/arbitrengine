@@ -1,12 +1,12 @@
 use std::io;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use petgraph::Graph;
 use petgraph::algo::find_negative_cycle;
 use petgraph::prelude::*;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct Exchange {
 	from: String,
 	to: String,
@@ -15,6 +15,10 @@ struct Exchange {
 
 type CGraph = Graph::<String, f64, Directed>;
 type IndexMap = HashMap::<String, NodeIndex>;
+
+fn mkerror(msg: String) -> String {
+	format!("ERROR:{}", msg)
+}
 
 fn parse_input(data: String) -> Result<Vec<Exchange>, String> {
 	data.split(",")
@@ -35,8 +39,18 @@ fn parse_input(data: String) -> Result<Vec<Exchange>, String> {
 			_ => Err(format!("bad format '{}'", value).to_string())
 		}
 	})
-	.collect()
-	//TODO make sure pairs are unique
+	.collect::<Result<Vec<Exchange>, String>>()
+	.and_then(|list| {
+		let unique_len = HashSet::<(String, String)>::from_iter(
+			list.clone()
+			.into_iter()
+			.map(|exchange| (exchange.to, exchange.from))
+		).len();
+		match unique_len == list.len() {
+			true => Ok(list),
+			false => Err("duplicate entries".to_string())
+		}
+	})
 }
 
 fn asset_to_index(
@@ -93,7 +107,7 @@ fn main() {
 					println!("{:?}", cc);
 				}
 			},
-			Err(msg) => eprintln!("{}", msg)
+			Err(msg) => eprintln!("{}", mkerror(msg))
 		}
 	}
 }
