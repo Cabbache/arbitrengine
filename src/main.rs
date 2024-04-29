@@ -47,7 +47,7 @@ fn parse_input(data: String) -> Result<Vec<Exchange>, String> {
 			.into_iter()
 			.map(|exchange| (exchange.to, exchange.from))
 		).len();
-		match unique_len == list.len() {
+		match unique_len == list.len() { 
 			true => Ok(list),
 			false => Err("duplicate entries".to_string())
 		}
@@ -56,13 +56,14 @@ fn parse_input(data: String) -> Result<Vec<Exchange>, String> {
 
 fn path_to_string(path: GraphPath, currencies: &CGraph) -> String {
 	let indexes = path.iter().map(|index| currencies[*index].clone());
+
 	indexes.clone().zip(indexes.skip(1))
 	.map(|(a, b)| format!("{}/{}", a, b))
 	.collect::<Vec<String>>()
 	.join(",")
 }
 
-fn get_neg_cycles(currencies: &CGraph) -> Vec<GraphPath> {
+fn get_neg_cycles(currencies: &CGraph) -> Vec<(GraphPath, f64)> {
 	currencies
 	.node_indices()
 	.filter_map(
@@ -76,9 +77,25 @@ fn get_neg_cycles(currencies: &CGraph) -> Vec<GraphPath> {
 				cl.extend(negc);
 				negc = cl;
 			}
-			Some(negc)
+			if negc.len() < 2 {
+				return None
+			}
+
+			let conversion = negc.iter()
+			.zip(negc.iter().skip(1))
+			.map(|(index1, index2)| {
+				//println!("{:?} {:?}", currencies[*index1], currencies[*index2]);
+				let edge_value = currencies[currencies.find_edge(*index1, *index2).unwrap()];
+				edge_value
+			}).fold(1f64, |v1, v2| v1*2f64.powf(-v2));
+
+			if conversion <= 1f64 { //It's not profitable
+				return None
+			}
+
+			Some((negc, conversion))
 		})
-	).collect::<Vec<GraphPath>>()
+	).collect::<Vec<(GraphPath, f64)>>()
 }
 
 fn asset_to_index(
@@ -111,7 +128,7 @@ fn update_states(
 }
 
 /*
-5/6/1,5/7/1,5/8/1,6/8/1,7/6/1,8/7/-1,0/1/1,0/2/1,0/3/1,1/3/1,2/1/1,3/2/-1
+EUR/CAD/1.366,EUR/CHF/1.433,EUR/GBP/0.88,EUR/USD/1.349,USD/GBP/0.657,USD/CHF/1.061,USD/CAD/1.005,CAD/GBP/0.650,CAD/CHF/1.049,CHF/GBP/0.619
 */
 fn main() {
 	let mut currency_index = IndexMap::new();
@@ -126,7 +143,7 @@ fn main() {
 			Ok(data) => {
 				update_states(&mut currencies, &mut currency_index, &data);
 				for cycle in get_neg_cycles(&currencies) {
-					println!("{}", path_to_string(cycle, &currencies));
+					println!("CYCLE {} {}", path_to_string(cycle.0, &currencies), cycle.1);
 				}
 			},
 			Err(msg) => eprintln!("{}", mkerror(msg))
