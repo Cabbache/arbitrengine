@@ -6,6 +6,10 @@ use petgraph::Graph;
 use petgraph::algo::find_negative_cycle;
 use petgraph::prelude::*;
 
+type CGraph = Graph::<String, f64, Directed>;
+type IndexMap = HashMap::<String, NodeIndex>;
+type GraphPath = Vec<NodeIndex>;
+
 #[derive(Clone, Debug)]
 struct Exchange {
 	from: String,
@@ -13,11 +17,8 @@ struct Exchange {
 	rate: f64,
 }
 
-type CGraph = Graph::<String, f64, Directed>;
-type IndexMap = HashMap::<String, NodeIndex>;
-
 fn mkerror(msg: String) -> String {
-	format!("ERROR:{}", msg)
+	format!("ERROR {}", msg)
 }
 
 fn parse_input(data: String) -> Result<Vec<Exchange>, String> {
@@ -51,6 +52,32 @@ fn parse_input(data: String) -> Result<Vec<Exchange>, String> {
 			false => Err("duplicate entries".to_string())
 		}
 	})
+}
+
+fn path_to_string(path: GraphPath, currencies: &CGraph) -> String {
+	path.iter()
+	.map(|index| currencies[*index].clone())
+	.collect::<Vec<String>>()
+	.join(",")
+}
+
+fn get_neg_cycles(currencies: &CGraph) -> Vec<GraphPath> {
+	currencies
+	.node_indices()
+	.filter_map(
+		|index| find_negative_cycle(&currencies, index)
+		.and_then(|mut negc| {
+			if *negc.last().unwrap() != index {
+				negc.push(index);
+			}
+			if *negc.first().unwrap() != index {
+				let mut cl = vec![index];
+				cl.extend(negc);
+				negc = cl;
+			}
+			Some(negc)
+		})
+	).collect::<Vec<GraphPath>>()
 }
 
 fn asset_to_index(
@@ -97,14 +124,8 @@ fn main() {
 		match input_data {
 			Ok(data) => {
 				update_states(&mut currencies, &mut currency_index, &data);
-				let neg_cycles = currencies
-					.node_indices()
-					.filter_map(
-						|index| find_negative_cycle(&currencies, index)
-							.and_then(|negc| Some((index, negc)))
-					);
-				for cc in neg_cycles {
-					println!("{:?}", cc);
+				for cycle in get_neg_cycles(&currencies) {
+					println!("{}", path_to_string(cycle, &currencies));
 				}
 			},
 			Err(msg) => eprintln!("{}", mkerror(msg))
