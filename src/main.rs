@@ -1,12 +1,14 @@
 use std::io;
+use std::ops::Add;
 
 use std::collections::{HashMap, HashSet};
 
 use petgraph::Graph;
 use petgraph::algo::find_negative_cycle;
 use petgraph::prelude::*;
+use petgraph::algo::FloatMeasure;
 
-type CGraph = Graph::<String, f64, Directed>;
+type CGraph = Graph::<String, Weight, Directed>;
 type IndexMap = HashMap::<String, NodeIndex>;
 type GraphPath = Vec<NodeIndex>;
 
@@ -15,6 +17,36 @@ struct Exchange {
 	from: String,
 	to: String,
 	rate: f64,
+}
+
+#[derive(PartialEq, PartialOrd, Copy, Default, Clone, Debug)]
+struct Weight {
+	weight: f64,
+	rate: f64,
+}
+impl FloatMeasure for Weight {
+	fn zero() -> Self {
+		Self {
+			weight: 0.,
+			rate: 1.,
+		}
+	}
+
+	fn infinite() -> Self {
+		Self {
+			weight: 1./0.,
+			rate: 1./0.,
+		}
+	}
+}
+impl Add for Weight {
+	type Output = Weight;
+	fn add(self, w: Weight) -> <Self as Add<Weight>>::Output {
+		Weight {
+			weight: self.weight + w.weight,
+			rate: self.rate + w.rate,
+		}
+	}
 }
 
 fn mkerror(msg: String) -> String {
@@ -69,6 +101,7 @@ fn get_neg_cycles(currencies: &CGraph) -> Vec<(GraphPath, f64)> {
 	.filter_map(
 		|index| find_negative_cycle(&currencies, index)
 		.and_then(|mut negc| {
+			println!("{:?} {:?}", index, negc);
 			if *negc.last().unwrap() != index {
 				negc.push(index);
 			}
@@ -84,10 +117,10 @@ fn get_neg_cycles(currencies: &CGraph) -> Vec<(GraphPath, f64)> {
 			let conversion = negc.iter()
 			.zip(negc.iter().skip(1))
 			.map(|(index1, index2)| {
-				//println!("{:?} {:?}", currencies[*index1], currencies[*index2]);
+				println!("{:?} {:?}", currencies[*index1], currencies[*index2]);
 				let edge_value = currencies[currencies.find_edge(*index1, *index2).unwrap()];
 				edge_value
-			}).fold(1f64, |v1, v2| v1*2f64.powf(-v2));
+			}).fold(1f64, |acc, weight| acc*weight.rate);
 
 			if conversion <= 1f64 { //It's not profitable
 				return None
@@ -122,8 +155,14 @@ fn update_states(
 		let from_index = asset_to_index(item.from.clone(), currency_index, currencies);
 		let to_index = asset_to_index(item.to.clone(), currency_index, currencies);
 
-		currencies.update_edge(from_index, to_index, -item.rate.log2());
-		currencies.update_edge(to_index, from_index, -(1f64/item.rate).log2());
+		currencies.update_edge(from_index, to_index, Weight {
+			weight: -item.rate.log2(),
+			rate: item.rate,
+		});
+		currencies.update_edge(to_index, from_index, Weight {
+			weight: -(1f64/item.rate).log2(),
+			rate: 1f64/item.rate,
+		});
 	}
 }
 
@@ -142,6 +181,7 @@ fn main() {
 		match input_data {
 			Ok(data) => {
 				update_states(&mut currencies, &mut currency_index, &data);
+				println!("{:?}", currencies);
 				for cycle in get_neg_cycles(&currencies) {
 					println!("CYCLE {} {}", path_to_string(cycle.0, &currencies), cycle.1);
 				}
