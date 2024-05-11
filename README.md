@@ -13,7 +13,7 @@ git clone https://github.com/Cabbache/arbitrengine
 cd app
 
 # Run the project
-cargo build --release
+cargo run --release
 ```
 
 ### With docker
