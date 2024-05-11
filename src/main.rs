@@ -92,10 +92,9 @@ fn path_to_string(path: GraphPath, currencies: &CGraph) -> String {
 
 	indexes
 		.clone()
-		.zip(indexes.skip(1))
-		.map(|(a, b)| format!("{}/{}", a, b))
+		.map(|a| format!("{}", a))
 		.collect::<Vec<String>>()
-		.join(",")
+		.join("=>")
 }
 
 fn get_neg_cycles(currencies: &CGraph) -> Vec<(GraphPath, f64)> {
