@@ -190,7 +190,7 @@ fn main() {
 			Ok(data) => {
 				update_states(&mut currencies, &mut currency_index, &data);
 				for cycle in get_neg_cycles(&currencies) {
-					println!("CYCLE {} {}", path_to_string(cycle.0, &currencies), cycle.1);
+					println!("CYCLE {} {:.4}", path_to_string(cycle.0, &currencies), cycle.1);
 				}
 			}
 			Err(msg) => eprintln!("{}", mkerror(msg)),
