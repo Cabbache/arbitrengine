@@ -25,6 +25,9 @@ netcat 127.0.0.1 5000
 ```
 
 ## Usage
+
+Every line is a state update that can contain one or more comma separated currency pairs in this format: `<FROM_ASSET>/<TO_ASSET>/<rate>`. Any arbitrage cycles within the updated state will be listed in this format: `CYCLE <asset path> <rate>`
+
 ![Example](https://cabbache.github.io/arbitrengine.gif)
 
 ## Issues
