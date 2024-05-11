@@ -103,7 +103,6 @@ fn get_neg_cycles(currencies: &CGraph) -> Vec<(GraphPath, f64)> {
 		.node_indices()
 		.filter_map(|index| {
 			find_negative_cycle(&currencies, index).and_then(|mut negc| {
-				println!("{:?} {:?}", index, negc);
 				if *negc.last().unwrap() != index {
 					negc.push(index);
 				}
@@ -120,7 +119,6 @@ fn get_neg_cycles(currencies: &CGraph) -> Vec<(GraphPath, f64)> {
 					.iter()
 					.zip(negc.iter().skip(1))
 					.map(|(index1, index2)| {
-						println!("{:?} {:?}", currencies[*index1], currencies[*index2]);
 						let edge_value =
 							currencies[currencies.find_edge(*index1, *index2).unwrap()];
 						edge_value
@@ -192,7 +190,6 @@ fn main() {
 		match input_data {
 			Ok(data) => {
 				update_states(&mut currencies, &mut currency_index, &data);
-				println!("{:?}", currencies);
 				for cycle in get_neg_cycles(&currencies) {
 					println!("CYCLE {} {}", path_to_string(cycle.0, &currencies), cycle.1);
 				}
